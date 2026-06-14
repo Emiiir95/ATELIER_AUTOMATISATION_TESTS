@@ -32,7 +32,7 @@
         <div class="kpi">
           <div class="kpi-label">Tests passés</div>
           <div class="kpi-value">{{ latest.summary.passed }}<span class="kpi-unit">/ {{ latest.summary.total }}</span></div>
-          <div class="kpi-sub">{{ latest.timestamp | fmt_ts }}</div>
+          <div class="kpi-sub" title="{{ latest.timestamp | fmt_ts }}">{{ latest.timestamp | fmt_rel }}</div>
         </div>
         <div class="kpi">
           <div class="kpi-label">Latence moyenne</div>

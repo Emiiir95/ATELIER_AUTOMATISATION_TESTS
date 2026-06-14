@@ -23,18 +23,64 @@ MIN_INTERVAL_SECONDS = 30
 _last_run_ts = 0.0
 
 
-def _fmt_timestamp(ts):
-    """Convertit un ISO timestamp en chaîne lisible."""
+try:
+    from zoneinfo import ZoneInfo
+    LOCAL_TZ = ZoneInfo(os.getenv("TZ", "Europe/Paris"))
+except Exception:
+    LOCAL_TZ = datetime.timezone.utc
+
+_FR_MONTHS = [
+    "janv.", "févr.", "mars", "avr.", "mai", "juin",
+    "juil.", "août", "sept.", "oct.", "nov.", "déc.",
+]
+
+
+def _parse_ts(ts):
     if not ts:
-        return ""
+        return None
     try:
-        dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+        return datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
-        return ts
+        return None
+
+
+def _fmt_timestamp(ts):
+    """Format absolu : '14 juin 2026, 17:03'."""
+    dt = _parse_ts(ts)
+    if not dt:
+        return ts or ""
+    local = dt.astimezone(LOCAL_TZ)
+    return f"{local.day} {_FR_MONTHS[local.month - 1]} {local.year}, {local.strftime('%H:%M')}"
+
+
+def _fmt_relative(ts):
+    """Format relatif : 'il y a 2 min', 'à l'instant', etc."""
+    dt = _parse_ts(ts)
+    if not dt:
+        return ts or ""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    delta = now - dt.astimezone(datetime.timezone.utc)
+    secs = int(delta.total_seconds())
+    if secs < 0:
+        return "à l'instant"
+    if secs < 10:
+        return "à l'instant"
+    if secs < 60:
+        return f"il y a {secs} s"
+    minutes = secs // 60
+    if minutes < 60:
+        return f"il y a {minutes} min"
+    hours = minutes // 60
+    if hours < 24:
+        return f"il y a {hours} h"
+    days = hours // 24
+    if days < 7:
+        return f"il y a {days} j"
+    return _fmt_timestamp(ts)
 
 
 app.jinja_env.filters["fmt_ts"] = _fmt_timestamp
+app.jinja_env.filters["fmt_rel"] = _fmt_relative
 
 
 @app.get("/")

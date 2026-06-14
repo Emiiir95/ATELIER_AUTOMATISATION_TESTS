@@ -87,7 +87,7 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Tests du dernier run</h3>
-          <span class="card-meta">{{ latest.timestamp | fmt_ts }}</span>
+          <span class="card-meta" title="{{ latest.timestamp | fmt_ts }}">{{ latest.timestamp | fmt_rel }}</span>
         </div>
         <div class="card-body">
           <table>
@@ -148,7 +148,7 @@
                 {% set dot_c = 'success' if p >= 95 else 'warning' if p >= 70 else 'danger' %}
                 <tr>
                   <td style="color: var(--text-muted)">#{{ r.id }}</td>
-                  <td>{{ r.timestamp | fmt_ts }}</td>
+                  <td title="{{ r.timestamp | fmt_ts }}">{{ r.timestamp | fmt_rel }}</td>
                   <td><span class="dot dot-{{ dot_c }}"></span> {{ p }} %</td>
                   <td style="color: var(--success); font-weight: 500">{{ r.passed }}</td>
                   <td style="color: {% if r.failed > 0 %}var(--danger){% else %}var(--text-muted){% endif %}; font-weight: 500">{{ r.failed }}</td>
