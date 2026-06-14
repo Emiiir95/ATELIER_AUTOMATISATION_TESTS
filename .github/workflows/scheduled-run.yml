@@ -2,7 +2,8 @@ name: Scheduled test run
 
 on:
   schedule:
-    - cron: "*/2 * * * *"
+    - cron: "0 5 * * *"
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 jobs:
