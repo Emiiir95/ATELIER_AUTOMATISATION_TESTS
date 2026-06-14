@@ -77,22 +77,24 @@
   </div>
 
   <div class="section">
-    <h2>Métriques mesurées</h2>
-    <div class="grid">
-      <div class="kpi">
-        <div class="kpi-label">Disponibilité</div>
-        <div class="kpi-value" style="font-size:18px">passed / total</div>
-        <div class="kpi-sub">Pourcentage de tests qui passent</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Taux d'erreur</div>
-        <div class="kpi-value" style="font-size:18px">failed / total</div>
-        <div class="kpi-sub">Pourcentage d'échecs</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Latence avg / p95</div>
-        <div class="kpi-value" style="font-size:18px">temps de réponse</div>
-        <div class="kpi-sub">Moyenne et 95e percentile</div>
+    <h2>Comment ça marche</h2>
+    <div class="card">
+      <div class="card-body padded" style="display:grid; gap:14px;">
+        <p style="margin:0">
+          Chaque exécution lance les 9 tests ci-dessus de façon séquentielle, mesure le temps de réponse de
+          chaque appel, puis agrège les résultats en métriques de qualité de service (QoS).
+        </p>
+        <p style="margin:0">
+          Les runs sont déclenchés manuellement depuis le bouton
+          <span class="mono">Lancer un test</span>, ou planifiés automatiquement via une
+          <span class="mono">Scheduled Task</span> sur PythonAnywhere qui appelle l'endpoint
+          <span class="mono">/run</span>.
+        </p>
+        <p style="margin:0">
+          Le résultat de chaque run est persisté en SQLite et consultable depuis le
+          <a href="{{ url_for('dashboard') }}">dashboard</a>, qui affiche les KPIs du dernier run et
+          l'historique complet.
+        </p>
       </div>
     </div>
   </div>
