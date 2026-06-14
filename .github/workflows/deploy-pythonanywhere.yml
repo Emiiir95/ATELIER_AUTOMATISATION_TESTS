@@ -73,3 +73,25 @@ jobs:
             >/dev/null
 
           echo "Deployed. Try: https://${DOMAIN}/"
+
+      - name: Trigger /run after deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          DOMAIN="${{ secrets.PA_WEBAPP_DOMAIN }}"
+          echo "Waiting 10s for webapp to be fully reloaded..."
+          sleep 10
+          echo "Triggering https://${DOMAIN}/run"
+          http_code=$(curl -sS -o /tmp/run_body -w "%{http_code}" -X POST \
+            -H "Accept: application/json" \
+            "https://${DOMAIN}/run")
+          echo "HTTP ${http_code}"
+          cat /tmp/run_body || true
+          echo
+          if [[ "${http_code}" == "429" ]]; then
+            echo "Rate limited (anti-spam) — considered OK."
+            exit 0
+          fi
+          if [[ "${http_code:0:1}" != "2" ]]; then
+            exit 1
+          fi
