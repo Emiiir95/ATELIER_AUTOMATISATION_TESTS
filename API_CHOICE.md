@@ -1,13 +1,27 @@
 # API Choice
 
-- Étudiant :
-- API choisie :
-- URL base :
-- Documentation officielle / README :
-- Auth : None / API Key / OAuth
-- Endpoints testés :
-  - GET ...
-  - GET ...
-- Hypothèses de contrat (champs attendus, types, codes) :
-- Limites / rate limiting connu :
-- Risques (instabilité, downtime, CORS, etc.) :
+- **Étudiant** : Emir Sen
+- **API choisie** : **Trombinoscope API** (mon propre projet B3)
+- **URL base** : `https://trombi-backend.onrender.com`
+- **Documentation officielle / README** : [github.com/Semiiih/Trombinoscope](https://github.com/Semiiih/Trombinoscope)
+- **Auth** : JWT Bearer Token (obtenu via `/api/auth/login`)
+- **Endpoints testés** :
+  - `GET /health` → état de santé
+  - `POST /api/auth/login` → auth (cas succès + cas échec)
+  - `GET /api/me` → profil utilisateur connecté
+  - `GET /api/classes` → liste des classes (avec et sans auth)
+  - `GET /api/students` → liste des élèves
+  - `GET /api/students?q=alice` → recherche par texte
+  - `GET /api/promos` → liste des promotions avec compteurs
+- **Hypothèses de contrat** :
+  - Toutes les routes `/api/*` (sauf `/auth/login`) attendent un header `Authorization: Bearer <token>`
+  - Les réponses sont en `application/json`
+  - Les listes sont des tableaux JSON
+  - Codes attendus : 200 (OK), 201 (created), 400 (validation), 401 (auth), 403 (forbidden), 404 (not found)
+  - Schéma `Student` : `{id, firstName, lastName, email, photoUrl?, classId?, class?}`
+- **Limites / rate limiting connu** : aucun rate limit explicite ; testé manuellement avec ~10 req/s sans souci
+- **Risques** :
+  - **Cold start Render** : si le backend free tier dort, la 1ère requête peut prendre 30-50 s → géré par le timeout 5 s + retry du client
+  - **DB expirée** : la BDD Postgres free Render expire après 90 jours
+  - **Photos** : `STORAGE=local` sur Render → les uploads disparaissent au redeploy (non bloquant pour les tests)
+  - **CORS** : ouvert (`cors()`) en dev/démo
