@@ -1,165 +1,171 @@
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard QoS — Trombinoscope API</title>
-  <style>
-    :root {
-      --bg:#0b1020; --card:#121a33; --muted:#aab4d4; --text:#e9edff;
-      --accent:#77baff; --ok:#62d6a0; --warn:#ffcc66; --bad:#ff6b7a;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:radial-gradient(1200px 600px at 10% 0%, #172257 0%, var(--bg) 60%);
-      color:var(--text); line-height:1.5;
-    }
-    header{padding:32px 18px 10px; max-width:1100px; margin:0 auto;}
-    h1{margin:0 0 6px; font-size:clamp(22px,3vw,30px)}
-    .muted{color:var(--muted)}
-    .container{max-width:1100px; margin:0 auto; padding:18px;}
-    .actions{display:flex; gap:10px; margin:10px 0 18px; flex-wrap:wrap}
-    .btn{
-      padding:10px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
-      color:var(--text); cursor:pointer; text-decoration:none; font-weight:500;
-    }
-    .btn:hover{background:rgba(255,255,255,.1)}
-    .btn-primary{background:linear-gradient(180deg,#1d8cff,#1465c6); border-color:#1d8cff}
-    .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:18px}
-    .kpi{
-      padding:14px 16px; border-radius:14px;
-      background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
-      border:1px solid rgba(255,255,255,.08);
-    }
-    .kpi b{display:block; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em}
-    .kpi span{display:block; font-size:24px; font-weight:600; margin-top:4px}
-    .kpi.ok span{color:var(--ok)} .kpi.warn span{color:var(--warn)} .kpi.bad span{color:var(--bad)}
-    .card{
-      background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));
-      border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:16px;
-      margin-bottom:18px;
-    }
-    .card h2{margin:0 0 12px; font-size:16px}
-    table{width:100%; border-collapse:collapse; font-size:13px}
-    th,td{padding:8px 10px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06)}
-    th{color:var(--muted); font-weight:500; text-transform:uppercase; font-size:11px; letter-spacing:.05em}
-    .status-PASS{color:var(--ok); font-weight:600}
-    .status-FAIL{color:var(--bad); font-weight:600}
-    .small{font-size:12px; color:var(--muted)}
-    .empty{padding:30px; text-align:center; color:var(--muted)}
-  </style>
-</head>
-<body>
-  <header>
-    <h1>📊 Dashboard QoS — API Trombinoscope</h1>
-    <p class="muted">Monitoring automatique de <code>https://trombi-backend.onrender.com</code></p>
-  </header>
+{% extends "base.html" %}
+{% block title %}Dashboard — Trombi Monitor{% endblock %}
 
-  <div class="container">
+{% macro sparkline(values, w=120, h=32, color='var(--text)') %}
+  {% if values and values | length >= 2 %}
+    {% set vmax = values | max %}
+    {% set vmin = values | min %}
+    {% set range = (vmax - vmin) if vmax != vmin else 1 %}
+    {% set n = values | length %}
+    {% set step = w / (n - 1) %}
+    <svg width="{{ w }}" height="{{ h }}" viewBox="0 0 {{ w }} {{ h }}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline
+        fill="none"
+        stroke="{{ color }}"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        points="{% for v in values %}{{ (loop.index0 * step) | round(2) }},{{ (h - ((v - vmin) / range * (h - 4)) - 2) | round(2) }} {% endfor %}"
+      />
+    </svg>
+  {% else %}
+    <span style="color: var(--text-muted); font-size:11px">—</span>
+  {% endif %}
+{% endmacro %}
 
-    <div class="actions">
-      <a href="/run" class="btn btn-primary">▶️ Lancer un test maintenant</a>
-      <a href="/dashboard" class="btn">🔄 Rafraîchir</a>
-      <a href="/health" class="btn">❤️ /health</a>
+{% block content %}
+  <div class="toolbar">
+    <div>
+      <h1>Dashboard</h1>
+      <p style="margin:0; font-size:13px">
+        Cible :
+        <a href="https://trombi-backend.onrender.com/health" target="_blank" rel="noopener" class="mono">
+          trombi-backend.onrender.com
+        </a>
+      </p>
     </div>
-
-    {% if latest %}
-      {% set s = latest.summary %}
-      {% set avail_pct = (s.availability * 100) | round(1) %}
-      {% set status_class = 'ok' if avail_pct >= 95 else 'warn' if avail_pct >= 70 else 'bad' %}
-
-      <div class="card">
-        <h2>📍 Dernier run — {{ latest.timestamp }}</h2>
-        <div class="grid">
-          <div class="kpi {{ status_class }}">
-            <b>Disponibilité</b>
-            <span>{{ avail_pct }} %</span>
-          </div>
-          <div class="kpi">
-            <b>Tests réussis</b>
-            <span>{{ s.passed }} / {{ s.total }}</span>
-          </div>
-          <div class="kpi {{ 'bad' if s.error_rate > 0.1 else 'ok' }}">
-            <b>Taux d'erreur</b>
-            <span>{{ (s.error_rate * 100) | round(1) }} %</span>
-          </div>
-          <div class="kpi">
-            <b>Latence moy.</b>
-            <span>{{ s.latency_ms_avg }} ms</span>
-          </div>
-          <div class="kpi">
-            <b>Latence p95</b>
-            <span>{{ s.latency_ms_p95 }} ms</span>
-          </div>
-          <div class="kpi">
-            <b>Latence max</b>
-            <span>{{ s.latency_ms_max }} ms</span>
-          </div>
-        </div>
-
-        <h3>Détail des tests</h3>
-        <table>
-          <thead>
-            <tr><th>Test</th><th>Statut</th><th>Latence</th><th>Détails</th></tr>
-          </thead>
-          <tbody>
-            {% for t in latest.tests %}
-              <tr>
-                <td><code>{{ t.name }}</code></td>
-                <td class="status-{{ t.status }}">{{ t.status }}</td>
-                <td>{{ t.latency_ms }} ms</td>
-                <td class="small">{{ t.details }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="card empty">
-        Aucun run pour l'instant. <a href="/run">Lance ton premier test</a>.
-      </div>
-    {% endif %}
-
-    <div class="card">
-      <h2>📈 Historique des derniers runs</h2>
-      {% if runs %}
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Timestamp</th>
-              <th>Disponibilité</th>
-              <th>Pass</th>
-              <th>Fail</th>
-              <th>Latence avg</th>
-              <th>Latence p95</th>
-              <th>Détail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in runs %}
-              {% set p = (r.availability * 100) | round(1) %}
-              <tr>
-                <td>{{ r.id }}</td>
-                <td class="small">{{ r.timestamp }}</td>
-                <td>{{ p }} %</td>
-                <td class="status-PASS">{{ r.passed }}</td>
-                <td class="status-{{ 'FAIL' if r.failed > 0 else 'PASS' }}">{{ r.failed }}</td>
-                <td>{{ r.latency_avg }} ms</td>
-                <td>{{ r.latency_p95 }} ms</td>
-                <td><a href="/runs/{{ r.id }}">JSON</a></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="empty">Aucun historique.</div>
-      {% endif %}
+    <div class="btn-row">
+      <form method="post" action="{{ url_for('trigger_run') }}" style="display:inline">
+        <button type="submit" class="btn-primary">Lancer un test</button>
+      </form>
+      <a class="btn" href="{{ url_for('dashboard') }}">Rafraîchir</a>
     </div>
-
-    <p class="small">Solution développée pour l'atelier "Testing as Code & API Monitoring" — Emir Sen</p>
   </div>
-</body>
-</html>
+
+  {% if not latest %}
+    <div class="card">
+      <div class="empty">
+        <div class="empty-title">Aucun run pour l'instant</div>
+        <div>Lance ton premier test pour voir apparaître les métriques.</div>
+      </div>
+    </div>
+  {% else %}
+    {% set s = latest.summary %}
+    {% set avail_pct = (s.availability * 100) | round(1) %}
+    {% set err_pct = (s.error_rate * 100) | round(1) %}
+    {% set status = 'success' if avail_pct >= 95 else 'warning' if avail_pct >= 70 else 'danger' %}
+
+    <div class="section">
+      <div class="grid">
+        <div class="kpi">
+          <div class="kpi-label">
+            <span class="dot dot-{{ status }}"></span>
+            Disponibilité
+          </div>
+          <div class="kpi-value">{{ avail_pct }}<span class="kpi-unit">%</span></div>
+          <div class="kpi-sub">{{ s.passed }} / {{ s.total }} tests passés</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Taux d'erreur</div>
+          <div class="kpi-value">{{ err_pct }}<span class="kpi-unit">%</span></div>
+          <div class="kpi-sub">{{ s.failed }} test(s) échoué(s)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Latence moyenne</div>
+          <div class="kpi-value">{{ s.latency_ms_avg }}<span class="kpi-unit">ms</span></div>
+          <div class="kpi-sub">{{ sparkline(sparkline_latency, 100, 24) }}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Latence p95</div>
+          <div class="kpi-value">{{ s.latency_ms_p95 }}<span class="kpi-unit">ms</span></div>
+          <div class="kpi-sub">max : {{ s.latency_ms_max }} ms</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Tests du dernier run</h3>
+          <span class="card-meta">{{ latest.timestamp | fmt_ts }}</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 30%">Test</th>
+                <th style="width: 12%">Statut</th>
+                <th style="width: 15%">Latence</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in latest.tests %}
+                <tr>
+                  <td class="mono">{{ t.name }}</td>
+                  <td>
+                    {% if t.status == 'PASS' %}
+                      <span class="badge badge-success">PASS</span>
+                    {% else %}
+                      <span class="badge badge-danger">FAIL</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ t.latency_ms }} ms</td>
+                  <td style="color: var(--text-secondary)">{{ t.details or '—' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="section">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Historique des runs</h3>
+        <span class="card-meta">{{ runs | length }} entrée(s)</span>
+      </div>
+      <div class="card-body">
+        {% if runs %}
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Horodatage</th>
+                <th>Dispo.</th>
+                <th>Pass</th>
+                <th>Fail</th>
+                <th>Latence avg</th>
+                <th>Latence p95</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in runs %}
+                {% set p = (r.availability * 100) | round(0) | int %}
+                {% set dot_c = 'success' if p >= 95 else 'warning' if p >= 70 else 'danger' %}
+                <tr>
+                  <td style="color: var(--text-muted)">#{{ r.id }}</td>
+                  <td>{{ r.timestamp | fmt_ts }}</td>
+                  <td><span class="dot dot-{{ dot_c }}"></span> {{ p }} %</td>
+                  <td style="color: var(--success); font-weight: 500">{{ r.passed }}</td>
+                  <td style="color: {% if r.failed > 0 %}var(--danger){% else %}var(--text-muted){% endif %}; font-weight: 500">{{ r.failed }}</td>
+                  <td>{{ r.latency_avg }} ms</td>
+                  <td>{{ r.latency_p95 }} ms</td>
+                  <td><a href="{{ url_for('run_detail', run_id=r.id) }}" target="_blank">JSON</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty">
+            <div class="empty-title">Aucun historique</div>
+            <div>Les exécutions seront listées ici.</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

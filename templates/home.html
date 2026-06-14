@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Trombi Monitor — Overview{% endblock %}
+
+{% block content %}
+  <div class="section">
+    <h1>Monitoring de l'API Trombinoscope</h1>
+    <p class="lede">
+      Solution d'automatisation de tests "as code" pour mesurer en continu la disponibilité, la latence et la conformité de
+      l'API <span class="mono">trombi-backend.onrender.com</span>. Chaque exécution enregistre 9 tests, calcule les
+      métriques QoS et persiste l'historique en SQLite.
+    </p>
+
+    <div class="btn-row">
+      <a class="btn btn-primary" href="{{ url_for('dashboard') }}">Voir le dashboard</a>
+      <form method="post" action="{{ url_for('trigger_run') }}" style="display:inline">
+        <button type="submit">Lancer un test maintenant</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>État actuel</h2>
+    <div class="grid">
+      {% if latest %}
+        {% set avail_pct = (latest.summary.availability * 100) | round(0) | int %}
+        {% set dot_class = 'success' if avail_pct >= 95 else 'warning' if avail_pct >= 70 else 'danger' %}
+        <div class="kpi">
+          <div class="kpi-label">Disponibilité</div>
+          <div class="kpi-value">{{ avail_pct }}<span class="kpi-unit">%</span></div>
+          <div class="kpi-sub"><span class="dot dot-{{ dot_class }}"></span> Dernier run</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Tests passés</div>
+          <div class="kpi-value">{{ latest.summary.passed }}<span class="kpi-unit">/ {{ latest.summary.total }}</span></div>
+          <div class="kpi-sub">{{ latest.timestamp | fmt_ts }}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Latence moyenne</div>
+          <div class="kpi-value">{{ latest.summary.latency_ms_avg }}<span class="kpi-unit">ms</span></div>
+          <div class="kpi-sub">p95 : {{ latest.summary.latency_ms_p95 }} ms</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Historique</div>
+          <div class="kpi-value">{{ runs_count }}<span class="kpi-unit">runs</span></div>
+          <div class="kpi-sub">total enregistrés</div>
+        </div>
+      {% else %}
+        <div class="kpi">
+          <div class="kpi-label">Statut</div>
+          <div class="kpi-value">—</div>
+          <div class="kpi-sub">Aucun run encore</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Tests exécutés</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Nom</th><th>Méthode</th><th>Endpoint</th><th>Vérifie</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">health_ok</td><td>GET</td><td class="mono">/health</td><td>Statut 200 et body OK</td></tr>
+          <tr><td class="mono">login_success</td><td>POST</td><td class="mono">/api/auth/login</td><td>Auth admin réussie, token retourné</td></tr>
+          <tr><td class="mono">login_failure</td><td>POST</td><td class="mono">/api/auth/login</td><td>Mauvais mot de passe rejeté en 401</td></tr>
+          <tr><td class="mono">classes_requires_auth</td><td>GET</td><td class="mono">/api/classes</td><td>Sans token : 401</td></tr>
+          <tr><td class="mono">classes_list</td><td>GET</td><td class="mono">/api/classes</td><td>Avec token : liste valide</td></tr>
+          <tr><td class="mono">students_list</td><td>GET</td><td class="mono">/api/students</td><td>Structure d'un élève conforme</td></tr>
+          <tr><td class="mono">students_search</td><td>GET</td><td class="mono">/api/students?q=alice</td><td>Recherche textuelle opérationnelle</td></tr>
+          <tr><td class="mono">me_endpoint</td><td>GET</td><td class="mono">/api/me</td><td>Profil utilisateur cohérent</td></tr>
+          <tr><td class="mono">promos_list</td><td>GET</td><td class="mono">/api/promos</td><td>Liste des promotions avec compteurs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Métriques mesurées</h2>
+    <div class="grid">
+      <div class="kpi">
+        <div class="kpi-label">Disponibilité</div>
+        <div class="kpi-value" style="font-size:18px">passed / total</div>
+        <div class="kpi-sub">Pourcentage de tests qui passent</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Taux d'erreur</div>
+        <div class="kpi-value" style="font-size:18px">failed / total</div>
+        <div class="kpi-sub">Pourcentage d'échecs</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Latence avg / p95</div>
+        <div class="kpi-value" style="font-size:18px">temps de réponse</div>
+        <div class="kpi-sub">Moyenne et 95e percentile</div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,57 +1,90 @@
 """App Flask de monitoring de l'API Trombinoscope.
 
 Routes :
-  /            → consignes initiales (template fourni par l'atelier)
-  /dashboard   → tableau de bord (dernier run + historique)
-  /run         → déclenche une nouvelle exécution des tests
-  /runs/<id>   → détail JSON d'un run précis
-  /health      → état de santé de la solution
+  /            : page d'accueil (présentation de la solution)
+  /dashboard   : tableau de bord (dernier run + historique)
+  /run         : déclenche une nouvelle exécution des tests (POST anti-spam)
+  /runs/<id>   : détail JSON d'un run précis
+  /health      : état de santé de la solution
 """
 import datetime
+import os
 import time
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for, flash, session
 
 import storage
 from tester.runner import run as run_tests
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET", "dev-secret-change-me")
 
-# Anti-spam : 1 run / 30 secondes
 MIN_INTERVAL_SECONDS = 30
 _last_run_ts = 0.0
 
 
+def _fmt_timestamp(ts):
+    """Convertit un ISO timestamp en chaîne lisible."""
+    if not ts:
+        return ""
+    try:
+        dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    except (ValueError, AttributeError):
+        return ts
+
+
+app.jinja_env.filters["fmt_ts"] = _fmt_timestamp
+
+
 @app.get("/")
-def consignes():
-    return render_template("consignes.html")
+def home():
+    latest = storage.latest_run()
+    runs_count = len(storage.list_runs(limit=1000))
+    return render_template("home.html", latest=latest, runs_count=runs_count)
 
 
 @app.get("/dashboard")
 def dashboard():
     runs = storage.list_runs(limit=20)
     latest = storage.latest_run()
-    return render_template("dashboard.html", runs=runs, latest=latest)
+    sparkline = [r["latency_avg"] for r in reversed(runs)][-20:]
+    avail_spark = [int(r["availability"] * 100) for r in reversed(runs)][-20:]
+    return render_template(
+        "dashboard.html",
+        runs=runs,
+        latest=latest,
+        sparkline_latency=sparkline,
+        sparkline_avail=avail_spark,
+    )
 
 
-@app.route("/run", methods=["GET", "POST"])
+@app.post("/run")
 def trigger_run():
     """Lance une nouvelle exécution des tests (anti-spam intégré)."""
     global _last_run_ts
     now = time.time()
-    if now - _last_run_ts < MIN_INTERVAL_SECONDS:
-        wait = int(MIN_INTERVAL_SECONDS - (now - _last_run_ts))
-        if request.method == "GET":
-            return redirect(url_for("dashboard"))
-        return jsonify(error="rate_limited", retry_after=wait), 429
+    elapsed = now - _last_run_ts
+    if elapsed < MIN_INTERVAL_SECONDS:
+        wait = int(MIN_INTERVAL_SECONDS - elapsed)
+        if request.headers.get("Accept", "").startswith("application/json"):
+            return jsonify(error="rate_limited", retry_after=wait), 429
+        flash(f"Attends encore {wait}s avant de relancer un test.", "warning")
+        return redirect(url_for("dashboard"))
 
     _last_run_ts = now
     result = run_tests()
     storage.save_run(result)
 
-    if request.method == "GET":
-        return redirect(url_for("dashboard"))
-    return jsonify(result)
+    if request.headers.get("Accept", "").startswith("application/json"):
+        return jsonify(result)
+    summary = result["summary"]
+    flash(
+        f"Run terminé : {summary['passed']}/{summary['total']} tests passés, "
+        f"disponibilité {int(summary['availability'] * 100)}%.",
+        "success",
+    )
+    return redirect(url_for("dashboard"))
 
 
 @app.get("/runs/<int:run_id>")
@@ -64,7 +97,6 @@ def run_detail(run_id):
 
 @app.get("/health")
 def health():
-    """Endpoint de santé de la solution de monitoring elle-même."""
     latest = storage.latest_run()
     return jsonify(
         status="ok",
@@ -76,4 +108,5 @@ def health():
 
 if __name__ == "__main__":
     storage.init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", "5050"))
+    app.run(host="0.0.0.0", port=port, debug=True)

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Trombi Monitor{% endblock %}</title>
+  <link rel="preconnect" href="https://rsms.me/" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #161616;
+      --border: #1f1f1f;
+      --border-strong: #2a2a2a;
+      --text: #f5f5f5;
+      --text-secondary: #a3a3a3;
+      --text-muted: #6b6b6b;
+      --accent: #ffffff;
+      --success: #4ade80;
+      --warning: #facc15;
+      --danger: #f87171;
+      --info: #60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-feature-settings: 'cv11', 'ss01';
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    a {
+      color: var(--text);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border-strong);
+      transition: border-color 0.15s ease;
+    }
+    a:hover { border-color: var(--text); }
+
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Monaco', monospace;
+      font-size: 0.9em;
+    }
+
+    .nav {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .nav-brand {
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-brand-mark {
+      width: 22px; height: 22px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      font-size: 13px;
+    }
+    .nav-links a {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-secondary);
+    }
+    .nav-links a:hover { background: var(--surface); color: var(--text); }
+    .nav-links a.active { color: var(--text); background: var(--surface-2); }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    p {
+      margin: 0 0 16px;
+      color: var(--text-secondary);
+    }
+
+    .lede {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 720px;
+      margin-bottom: 32px;
+    }
+
+    .section { margin-bottom: 48px; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    button, .btn {
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button:hover, .btn:hover {
+      background: var(--surface-2);
+      border-color: var(--text-muted);
+    }
+    .btn-primary {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+    .btn-primary:hover {
+      background: var(--text-secondary);
+      border-color: var(--text-secondary);
+    }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .flash {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+    }
+    .flash-success { border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05); }
+    .flash-warning { border-color: rgba(250, 204, 21, 0.3); background: rgba(250, 204, 21, 0.05); }
+    .flash-error { border-color: rgba(248, 113, 113, 0.3); background: rgba(248, 113, 113, 0.05); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-unit {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-left: 4px;
+      font-weight: 400;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title { font-size: 14px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+    .card-meta { font-size: 12px; color: var(--text-muted); }
+    .card-body { padding: 0; }
+    .card-body.padded { padding: 20px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 12px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background: var(--surface-2);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface-2); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-success { background: rgba(74, 222, 128, 0.1); color: var(--success); border: 1px solid rgba(74, 222, 128, 0.2); }
+    .badge-warning { background: rgba(250, 204, 21, 0.1); color: var(--warning); border: 1px solid rgba(250, 204, 21, 0.2); }
+    .badge-danger { background: rgba(248, 113, 113, 0.1); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.2); }
+    .badge-muted { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot-success { background: var(--success); box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15); }
+    .dot-warning { background: var(--warning); box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.15); }
+    .dot-danger { background: var(--danger); box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15); }
+
+    .empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .empty-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    footer {
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+      margin-top: 64px;
+    }
+
+    @media (max-width: 720px) {
+      .nav-links { font-size: 12px; }
+      main { padding: 32px 16px; }
+      h1 { font-size: 24px; }
+      .kpi-value { font-size: 24px; }
+      th, td { padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="nav-brand" href="{{ url_for('home') }}">
+        <span class="nav-brand-mark">T</span>
+        Trombi Monitor
+      </a>
+      <div class="nav-links">
+        <a href="{{ url_for('home') }}" class="{% if request.endpoint == 'home' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('health') }}">Health</a>
+        <a href="https://github.com/Emiiir95/ATELIER_AUTOMATISATION_TESTS" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    Trombi Monitor — solution développée pour l'atelier "Testing as Code &amp; API Monitoring".
+  </footer>
+</body>
+</html>
